@@ -1,0 +1,1547 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      ScamAnchor — Grounded scam intelligence, with a human in the loop
+    </title>
+    <meta
+      name="description"
+      content="ScamAnchor: an LLM scam-report classifier grounded in a structured knowledge base of real Singapore scams and validated against it — so it can't silently hallucinate. Built solo, end-to-end."
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --navy: #0f2444;
+        --navy-2: #16335f;
+        --blue: #2563eb;
+        --blue-700: #1d4ed8;
+        --blue-50: #eff4ff;
+        --green: #16a34a;
+        --green-50: #ecfdf5;
+        --amber: #c2410c;
+        --bg: #ffffff;
+        --soft: #f5f8fc;
+        --line: #e4e9f2;
+        --text: #1f2a3a;
+        --muted: #64748b;
+        --code-bg: #0f1b2e;
+        --max: 900px;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+        line-height: 1.7;
+        font-size: 16px;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* NAV */
+      nav {
+        background: rgba(15, 36, 68, 0.97);
+        backdrop-filter: blur(6px);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        gap: 1.6rem;
+        padding: 0 2rem;
+        height: 56px;
+      }
+      nav .brand {
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.95rem;
+        letter-spacing: 0.04em;
+        margin-right: auto;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      nav a {
+        color: rgba(255, 255, 255, 0.72);
+        text-decoration: none;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        transition: color 0.2s;
+      }
+      nav a:hover {
+        color: #fff;
+      }
+      .nav-links {
+        display: flex;
+        gap: 1.4rem;
+      }
+      @media (max-width: 760px) {
+        .nav-links {
+          display: none;
+        }
+      }
+
+      /* HERO */
+      .hero {
+        background:
+          radial-gradient(
+            1200px 400px at 80% -10%,
+            rgba(37, 99, 235, 0.35),
+            transparent
+          ),
+          linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%);
+        color: #fff;
+        padding: 5rem 2rem 4rem;
+        text-align: center;
+      }
+      .hero .tag {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+        padding: 0.3rem 1rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 1.5rem;
+        color: #dbe6fb;
+      }
+      .hero h1 {
+        font-size: 3.4rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+      .hero .sub {
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: #bcd0f0;
+        margin: 0.9rem 0 1.5rem;
+      }
+      .hero .hook {
+        font-size: 1.05rem;
+        font-weight: 400;
+        color: #e7eefb;
+        max-width: 660px;
+        margin: 0 auto 2rem;
+        line-height: 1.7;
+      }
+      .hero .hook strong {
+        color: #fff;
+      }
+      .cta {
+        display: flex;
+        gap: 0.8rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .btn {
+        display: inline-block;
+        border-radius: 8px;
+        padding: 0.7rem 1.4rem;
+        font-size: 0.92rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition:
+          transform 0.15s,
+          background 0.2s;
+      }
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+      .btn-primary {
+        background: var(--blue);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #3b82f6;
+      }
+      .btn-ghost {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+      }
+      .btn-ghost:hover {
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      /* STAT STRIP */
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 2.5rem;
+        background: var(--navy-2);
+        color: #fff;
+        padding: 1.4rem 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .stat {
+        text-align: center;
+      }
+      .stat b {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #fff;
+      }
+      .stat span {
+        font-size: 0.78rem;
+        color: #9fb6db;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      /* LAYOUT */
+      .container {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 0 2rem;
+      }
+      section {
+        padding: 4rem 0;
+        border-bottom: 1px solid var(--line);
+      }
+      section:last-of-type {
+        border-bottom: none;
+      }
+      .section-label {
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--blue);
+        margin-bottom: 0.6rem;
+      }
+      h2 {
+        font-size: 1.85rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: #0f2444;
+        margin-bottom: 1.1rem;
+        line-height: 1.25;
+      }
+      h3 {
+        font-size: 1.12rem;
+        font-weight: 700;
+        color: #16335f;
+        margin: 1.8rem 0 0.5rem;
+      }
+      p {
+        margin-bottom: 1rem;
+        color: #344256;
+      }
+      p:last-child {
+        margin-bottom: 0;
+      }
+      strong {
+        color: #0f2444;
+      }
+      em {
+        color: #1d4ed8;
+        font-style: italic;
+      }
+      .lead {
+        font-size: 1.1rem;
+        color: #334256;
+      }
+
+      /* CARDS */
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.1rem;
+        margin-top: 1.6rem;
+      }
+      @media (max-width: 760px) {
+        .cards {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 1.4rem;
+        transition:
+          transform 0.18s,
+          box-shadow 0.18s;
+      }
+      .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px rgba(15, 36, 68, 0.1);
+      }
+      .card .ico {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: var(--blue-50);
+        color: var(--blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        margin-bottom: 0.8rem;
+      }
+      .card h3 {
+        margin: 0 0 0.4rem;
+        font-size: 1.02rem;
+      }
+      .card p {
+        font-size: 0.92rem;
+        margin: 0;
+        color: #475569;
+      }
+
+      /* CALLOUT */
+      .callout {
+        background: var(--soft);
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--blue);
+        border-radius: 10px;
+        padding: 1.4rem 1.6rem;
+        margin: 1.6rem 0;
+      }
+      .callout.warn {
+        border-left-color: var(--amber);
+      }
+      .callout.gap {
+        border-left-color: var(--amber);
+        background: #fffaf5;
+      }
+      .callout h3 {
+        margin-top: 0;
+      }
+      .callout p {
+        font-size: 0.96rem;
+      }
+
+      /* CODE */
+      .code {
+        background: var(--code-bg);
+        border-radius: 12px;
+        overflow: hidden;
+        margin: 1.4rem 0;
+        box-shadow: 0 8px 24px rgba(15, 27, 46, 0.18);
+      }
+      .code .bar {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.6rem 0.9rem;
+        background: #0b1626;
+        border-bottom: 1px solid #1c2c44;
+      }
+      .code .bar i {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .code .bar .r {
+        background: #ff5f56;
+      }
+      .code .bar .y {
+        background: #ffbd2e;
+      }
+      .code .bar .g {
+        background: #27c93f;
+      }
+      .code .bar span {
+        margin-left: 0.5rem;
+        color: #6f8099;
+        font-size: 0.74rem;
+        font-family: ui-monospace, monospace;
+      }
+      .code pre {
+        margin: 0;
+        padding: 1.1rem 1.3rem;
+        overflow-x: auto;
+      }
+      .code code {
+        font-family: ui-monospace, "SF Mono", Consolas, monospace;
+        font-size: 0.82rem;
+        line-height: 1.65;
+        color: #cdd9ec;
+        white-space: pre;
+      }
+      .code .k {
+        color: #7cc0ff;
+      }
+      .code .s {
+        color: #9ae6a4;
+      }
+      .code .n {
+        color: #f6c177;
+      }
+      .code .c {
+        color: #5a6b85;
+      }
+      .code .bad {
+        color: #ff8b8b;
+      }
+
+      /* FIGURE */
+      figure {
+        margin: 1.6rem 0;
+      }
+      figure img {
+        width: 100%;
+        display: block;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(15, 36, 68, 0.08);
+      }
+      figcaption {
+        font-size: 0.84rem;
+        color: var(--muted);
+        text-align: center;
+        margin-top: 0.7rem;
+      }
+      .diagram {
+        margin: 1.6rem 0;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 0.8rem;
+        background: #fff;
+        overflow-x: auto;
+        box-shadow: 0 10px 30px rgba(15, 36, 68, 0.08);
+      }
+      .diagram svg {
+        display: block;
+        width: 100%;
+        min-width: 720px;
+        height: auto;
+      }
+      .cap {
+        font-size: 0.84rem;
+        color: var(--muted);
+        text-align: center;
+        margin-top: 0.7rem;
+      }
+
+      /* LAYER LIST */
+      .layers {
+        list-style: none;
+        margin: 1.2rem 0;
+        padding: 0;
+      }
+      .layers li {
+        display: flex;
+        gap: 0.9rem;
+        padding: 0.7rem 0;
+        border-bottom: 1px dashed var(--line);
+      }
+      .layers li:last-child {
+        border-bottom: none;
+      }
+      .layers .num {
+        flex: none;
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        background: var(--blue-50);
+        color: var(--blue-700);
+        font-weight: 800;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .layers .t {
+        font-size: 0.95rem;
+      }
+      .layers .t b {
+        color: #0f2444;
+      }
+
+      /* ROADMAP TABLE */
+      table.road {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1.4rem;
+        font-size: 0.92rem;
+      }
+      table.road th {
+        text-align: left;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        padding: 0.5rem 0.6rem;
+        border-bottom: 2px solid var(--line);
+      }
+      table.road td {
+        padding: 0.7rem 0.6rem;
+        border-bottom: 1px solid var(--line);
+        color: #334256;
+        vertical-align: middle;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .pill.run {
+        background: var(--green-50);
+        color: #047857;
+      }
+      .pill.plan {
+        background: #f1f5f9;
+        color: #475569;
+      }
+
+      /* TWO COL */
+      .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.4rem;
+        margin-top: 1.4rem;
+      }
+      @media (max-width: 760px) {
+        .two {
+          grid-template-columns: 1fr;
+        }
+      }
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 1.3rem 1.4rem;
+        background: var(--bg);
+      }
+      .panel h3 {
+        margin-top: 0;
+      }
+      .panel ul {
+        margin: 0.4rem 0 0;
+        padding-left: 1.1rem;
+      }
+      .panel li {
+        font-size: 0.92rem;
+        color: #475569;
+        margin-bottom: 0.55rem;
+      }
+      .panel li:last-child {
+        margin-bottom: 0;
+      }
+
+      .note {
+        font-size: 0.86rem;
+        color: var(--muted);
+        font-style: italic;
+        margin-top: 1.4rem;
+      }
+
+      /* FOOTER */
+      footer {
+        background: var(--navy);
+        color: #cdd9ec;
+        padding: 3rem 2rem;
+        text-align: center;
+      }
+      footer h3 {
+        color: #fff;
+        margin: 0 0 0.5rem;
+      }
+      footer p {
+        color: #9fb6db;
+        font-size: 0.92rem;
+      }
+      footer a {
+        color: #9fc0ff;
+        text-decoration: none;
+      }
+      footer a:hover {
+        text-decoration: underline;
+      }
+      .foot-links {
+        display: flex;
+        gap: 1.4rem;
+        justify-content: center;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <span class="brand">🛡️ ScamAnchor</span>
+      <div class="nav-links">
+        <a href="#problem">Problem</a>
+        <a href="#system">System</a>
+        <a href="#proof">Proof</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#roadmap">Roadmap</a>
+        <a href="#limits">Honesty</a>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <span class="tag">Anti-scam · LLM + Knowledge Graph · Singapore</span>
+      <h1>ScamAnchor</h1>
+      <p class="sub">Grounded scam intelligence, with a human in the loop.</p>
+      <p class="hook">
+        Large language models are great at spotting scams — and just as good at
+        <strong>confidently inventing details</strong>. So I built a scam-report
+        classifier that <strong>can't</strong>: the model reasons, but every
+        answer is validated against a knowledge base of real Singapore scams
+        before it's trusted. Built solo, end-to-end.
+      </p>
+      <div class="cta">
+        <a class="btn btn-primary" href="#proof">See how I proved it ↓</a>
+        <a class="btn btn-ghost" href="#architecture">The architecture ↓</a>
+      </div>
+    </header>
+
+    <div class="stats">
+      <div class="stat"><b>41</b><span>evidenced entities</span></div>
+      <div class="stat"><b>4-layer</b><span>output validation</span></div>
+      <div class="stat"><b>81</b><span>tests</span></div>
+      <div class="stat"><b>13/13</b><span>on Claude eval</span></div>
+      <div class="stat"><b>solo</b><span>end-to-end</span></div>
+    </div>
+
+    <!-- PROBLEM -->
+    <section id="problem">
+      <div class="container">
+        <div class="section-label">The problem</div>
+        <h2>
+          Anti-scam work is reactive. The hard part is the scam you haven't
+          seen.
+        </h2>
+        <p class="lead">
+          Singaporeans lost over <strong>S$900 million</strong> to scams in
+          2025. Most anti-scam tooling is reactive — defences get built after
+          victims appear.
+        </p>
+        <p>
+          The hard part isn't catching a scam we've seen a hundred times. It's
+          making sure no
+          <strong>second</strong> victim falls to an attack vector we already
+          understand — while staying ready for the ones we don't. And it's doing
+          that with an AI you can actually <em>trust</em>: a classifier that
+          hallucinates a scam category is worse than none — it points a victim
+          the wrong way, with total confidence.
+        </p>
+      </div>
+    </section>
+
+    <!-- SYSTEM -->
+    <section id="system">
+      <div class="container">
+        <div class="section-label">The system</div>
+        <h2>Three components, one rule — the AI never has the last word.</h2>
+        <p>
+          A report comes in; the classifier reads it <em>grounded</em> in the
+          taxonomy and <em>validates</em> every answer against it. Match
+          something known → a checked classification. Match nothing → flagged
+          novel, into human curation.
+        </p>
+        <div class="cards">
+          <div class="card">
+            <div class="ico">🧠</div>
+            <h3>Taxonomy knowledge graph</h3>
+            <p>
+              The evidenced brain — 41 entities (categories, patterns, tools,
+              mitigations, threat-patterns), every one grounded in a real public
+              source. Real cases only.
+            </p>
+          </div>
+          <div class="card">
+            <div class="ico">⚙️</div>
+            <h3>Classifier + trust layer</h3>
+            <p>
+              Detects whether it's a scam, maps it to the taxonomy, flags
+              novelty — and validates its own output in four layers, so nothing
+              unchecked ships.
+            </p>
+          </div>
+          <div class="card">
+            <div class="ico">👤</div>
+            <h3>Human curation loop</h3>
+            <p>
+              Novel scams route to an analyst review console; a human approves
+              what enters the knowledge base. It never updates itself.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROOF -->
+    <section id="proof">
+      <div class="container">
+        <div class="section-label">Proof</div>
+        <h2>The trust layer — reasoning you can check.</h2>
+        <p>
+          The thesis in code:
+          <strong
+            >the LLM reasons; the knowledge base validates; nothing unchecked
+            reaches the output.</strong
+          >
+          Every classification carries a <code>_validation</code> block, because
+          the model's answer isn't trusted until it's checked — in four layers:
+        </p>
+
+        <ul class="layers">
+          <li>
+            <span class="num">1</span
+            ><span class="t"
+              ><b>Shape</b> — is the output even the right structure?</span
+            >
+          </li>
+          <li>
+            <span class="num">2</span
+            ><span class="t"
+              ><b>Vocabulary</b> — every facet value must exist in the taxonomy.
+              <em>Catches a hallucinated value.</em></span
+            >
+          </li>
+          <li>
+            <span class="num">3</span
+            ><span class="t"
+              ><b>Referential integrity</b> — every category &amp; pattern ID
+              must exist. <em>Catches an invented ID.</em></span
+            >
+          </li>
+          <li>
+            <span class="num">4</span
+            ><span class="t"
+              ><b>Consistency</b> — the answer can't contradict itself.</span
+            >
+          </li>
+        </ul>
+
+        <p>
+          A real case. Input:
+          <em
+            >"My mother got a call from someone claiming to be the police,
+            saying her bank account was linked to money laundering — move your
+            savings to a 'safe account' to avoid arrest."</em
+          >
+          The complete, checked output:
+        </p>
+
+        <div class="code">
+          <div class="bar">
+            <i class="r"></i><i class="y"></i><i class="g"></i
+            ><span>classifier output (JSON)</span>
+          </div>
+          <pre><code>{
+  <span class="k">"is_scam"</span>: <span class="n">true</span>,
+  <span class="k">"primary_category"</span>: { <span class="k">"id"</span>: <span class="s">"CAT-01"</span>, <span class="k">"name"</span>: <span class="s">"Government Official Impersonation"</span>, <span class="k">"confidence"</span>: <span class="n">0.97</span> },
+  <span class="k">"candidate_patterns"</span>: [ { <span class="k">"id"</span>: <span class="s">"SP-001"</span>, <span class="k">"name"</span>: <span class="s">"Authority-threat phone scam"</span>, <span class="k">"confidence"</span>: <span class="n">0.95</span> } ],
+  <span class="k">"facets"</span>: {
+    <span class="k">"channel"</span>: [<span class="s">"voice_call"</span>],
+    <span class="k">"psychological_trigger"</span>: [<span class="s">"authority"</span>, <span class="s">"fear"</span>],
+    <span class="k">"lifecycle_phase"</span>: [<span class="s">"first_contact"</span>, <span class="s">"exploitation"</span>],
+    <span class="k">"attack_method"</span>: [<span class="s">"impersonation"</span>, <span class="s">"pretexting"</span>],
+    <span class="k">"target_vector"</span>: <span class="s">"individual"</span>,
+    <span class="k">"authorization_pattern"</span>: <span class="s">"self_effected"</span>,
+    <span class="k">"loss_type"</span>: [<span class="s">"financial"</span>]
+  },
+  <span class="k">"multi_stage"</span>: <span class="n">false</span>,
+  <span class="k">"possible_threat_pattern"</span>: <span class="n">null</span>,
+  <span class="k">"is_novel"</span>: <span class="n">false</span>,
+  <span class="k">"novelty_note"</span>: <span class="n">null</span>,
+  <span class="k">"reasoning"</span>: <span class="s">"Caller impersonates police and uses threat of arrest to pressure a transfer — the signature of an authority-threat impersonation scam."</span>,
+  <span class="k">"_validation"</span>: { <span class="k">"ok"</span>: <span class="n">true</span>, <span class="k">"issues"</span>: [] }
+}</code></pre>
+        </div>
+
+        <p>
+          Every classification carries that <code>_validation</code> block. The
+          point is what happens when the model <em>doesn't</em> behave — invent
+          a value or an ID, and it's flagged, not trusted:
+        </p>
+
+        <div class="code">
+          <div class="bar">
+            <i class="r"></i><i class="y"></i><i class="g"></i
+            ><span>_validation — a caught hallucination</span>
+          </div>
+          <pre><code>{
+  <span class="k">"ok"</span>: <span class="bad">false</span>,
+  <span class="k">"issues"</span>: [
+    <span class="s">"[enum] facet psychological_trigger: 'desperation' not a valid value"</span>,
+    <span class="s">"[ref] candidate_pattern SP-999 does not exist in the KB"</span>
+  ]
+}</code></pre>
+        </div>
+
+        <div class="callout warn">
+          <h3>How I know it works — and where it doesn't</h3>
+          <p>
+            Today the system passes its evaluation —
+            <strong>13 cases across three models, 13/13 on Claude.</strong> The
+            useful part is how it got there. An early run mislabelled a
+            <strong>rental scam</strong> as "e-commerce" — confidently, on both
+            Claude models, at 91–95%. My validation <em>didn't</em> catch it:
+            the model picked a category that was
+            <strong>real, just not correct</strong>, and validation checks that
+            a value <em>exists</em>, not that it's the <em>right</em> one.
+          </p>
+          <p>
+            So I did the research — checked the taxonomies the field uses (the
+            US Federal Reserve's ScamClassifier, Singapore Police advisories),
+            found rental scams are a recognised, distinct category my knowledge
+            base was missing, added it with sourcing, and the case passed. The
+            deeper problem it exposed — a model confident
+            <em>and wrong</em> about a real category — sits at the top of my
+            roadmap.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ARCHITECTURE -->
+    <section id="architecture">
+      <div class="container">
+        <div class="section-label">Architecture</div>
+        <h2>Under the hood.</h2>
+        <p>
+          A report flows down the centre; every stage consults the knowledge
+          base on the left; a human grows it. The blue core is built and
+          running; the dashed pieces are the roadmap — each placed where it
+          actually lives.
+        </p>
+        <div
+          class="diagram"
+          role="img"
+          aria-label="ScamAnchor architecture: a scam report flows down the centre through the classifier and 4-layer validation to a checked result or the human curation loop, all consulting the taxonomy knowledge graph on the left; planned items (ML trust check, discovery sources) are dashed."
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 1200 710"
+            font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+          >
+            <defs>
+              <marker
+                id="a"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="7"
+                markerHeight="7"
+                orient="auto-start-reverse"
+              >
+                <path d="M0,0 L10,5 L0,10 z" fill="#4b5563" />
+              </marker>
+              <marker
+                id="ab"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="7"
+                markerHeight="7"
+                orient="auto-start-reverse"
+              >
+                <path d="M0,0 L10,5 L0,10 z" fill="#2563eb" />
+              </marker>
+              <marker
+                id="al"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="7"
+                markerHeight="7"
+                orient="auto-start-reverse"
+              >
+                <path d="M0,0 L10,5 L0,10 z" fill="#9ca3af" />
+              </marker>
+            </defs>
+            <rect width="1200" height="710" fill="#ffffff" />
+            <text x="40" y="40" font-size="20" font-weight="700" fill="#111827">
+              ScamAnchor — architecture
+            </text>
+            <text x="40" y="61" font-size="13" fill="#6b7280">
+              A report flows down the centre; every stage consults the knowledge
+              base on the left; a human grows it.
+            </text>
+            <rect
+              x="500"
+              y="86"
+              width="164"
+              height="46"
+              rx="23"
+              fill="#f3f4f6"
+              stroke="#6b7280"
+              stroke-width="1.5"
+            />
+            <text
+              x="582"
+              y="114"
+              font-size="13.5"
+              font-weight="600"
+              fill="#374151"
+              text-anchor="middle"
+            >
+              Scam report
+            </text>
+            <rect
+              x="772"
+              y="78"
+              width="320"
+              height="92"
+              rx="12"
+              fill="#f9fafb"
+              stroke="#9ca3af"
+              stroke-width="1.4"
+              stroke-dasharray="6 5"
+            />
+            <text
+              x="788"
+              y="100"
+              font-size="12"
+              font-weight="700"
+              fill="#6b7280"
+            >
+              PLANNED — future input sources
+            </text>
+            <text x="788" y="124" font-size="11.5" fill="#4b5563">
+              • real-world discovery — news / report monitor
+            </text>
+            <text x="788" y="146" font-size="11.5" fill="#4b5563">
+              • adversarial red-team — invents + tests variants
+            </text>
+            <rect
+              x="40"
+              y="158"
+              width="258"
+              height="508"
+              rx="14"
+              fill="#dbeafe"
+              stroke="#2563eb"
+              stroke-width="2.5"
+            />
+            <text
+              x="169"
+              y="192"
+              font-size="15"
+              font-weight="700"
+              fill="#1e3a8a"
+              text-anchor="middle"
+            >
+              TAXONOMY
+            </text>
+            <text
+              x="169"
+              y="212"
+              font-size="15"
+              font-weight="700"
+              fill="#1e3a8a"
+              text-anchor="middle"
+            >
+              KNOWLEDGE GRAPH
+            </text>
+            <text
+              x="169"
+              y="234"
+              font-size="12"
+              font-style="italic"
+              fill="#1e40af"
+              text-anchor="middle"
+            >
+              the brain
+            </text>
+            <line
+              x1="72"
+              y1="250"
+              x2="266"
+              y2="250"
+              stroke="#93b4e6"
+              stroke-width="1"
+            />
+            <text
+              x="169"
+              y="278"
+              font-size="13"
+              font-weight="600"
+              fill="#1e3a8a"
+              text-anchor="middle"
+            >
+              41 evidenced entities
+            </text>
+            <text
+              x="169"
+              y="304"
+              font-size="12"
+              fill="#3b5b8c"
+              text-anchor="middle"
+            >
+              categories · patterns
+            </text>
+            <text
+              x="169"
+              y="323"
+              font-size="12"
+              fill="#3b5b8c"
+              text-anchor="middle"
+            >
+              tools · mitigations
+            </text>
+            <text
+              x="169"
+              y="342"
+              font-size="12"
+              fill="#3b5b8c"
+              text-anchor="middle"
+            >
+              threat-patterns
+            </text>
+            <line
+              x1="72"
+              y1="360"
+              x2="266"
+              y2="360"
+              stroke="#93b4e6"
+              stroke-width="1"
+            />
+            <text
+              x="169"
+              y="388"
+              font-size="11.5"
+              fill="#60769e"
+              text-anchor="middle"
+            >
+              real cases only —
+            </text>
+            <text
+              x="169"
+              y="406"
+              font-size="11.5"
+              fill="#60769e"
+              text-anchor="middle"
+            >
+              every entry sourced
+            </text>
+            <text
+              x="169"
+              y="438"
+              font-size="11.5"
+              fill="#60769e"
+              text-anchor="middle"
+            >
+              grows continuously,
+            </text>
+            <text
+              x="169"
+              y="456"
+              font-size="11.5"
+              fill="#60769e"
+              text-anchor="middle"
+            >
+              human-gated
+            </text>
+            <rect
+              x="438"
+              y="158"
+              width="288"
+              height="96"
+              rx="12"
+              fill="#eef2ff"
+              stroke="#6366f1"
+              stroke-width="2"
+            />
+            <text
+              x="582"
+              y="184"
+              font-size="15"
+              font-weight="700"
+              fill="#3730a3"
+              text-anchor="middle"
+            >
+              CLASSIFIER
+            </text>
+            <text x="452" y="206" font-size="11.5" fill="#4b5563">
+              • scam detection — is this even a scam?
+            </text>
+            <text x="452" y="225" font-size="11.5" fill="#4b5563">
+              • taxonomy mapping — category + 1–3 patterns
+            </text>
+            <text x="452" y="244" font-size="11.5" fill="#4b5563">
+              • 7 facets · novelty · multi-stage
+            </text>
+            <rect
+              x="438"
+              y="292"
+              width="288"
+              height="110"
+              rx="12"
+              fill="#eef2ff"
+              stroke="#6366f1"
+              stroke-width="2"
+            />
+            <text
+              x="582"
+              y="318"
+              font-size="15"
+              font-weight="700"
+              fill="#3730a3"
+              text-anchor="middle"
+            >
+              4-LAYER VALIDATION
+            </text>
+            <text x="452" y="340" font-size="11.5" fill="#4b5563">
+              ① shape — schema-valid output
+            </text>
+            <text x="452" y="359" font-size="11.5" fill="#4b5563">
+              ② vocabulary — catches hallucinated values
+            </text>
+            <text x="452" y="378" font-size="11.5" fill="#4b5563">
+              ③ referential — catches invented IDs
+            </text>
+            <text x="452" y="397" font-size="11.5" fill="#4b5563">
+              ④ consistency — no self-contradiction
+            </text>
+            <rect
+              x="438"
+              y="440"
+              width="288"
+              height="56"
+              rx="12"
+              fill="#f9fafb"
+              stroke="#9ca3af"
+              stroke-width="1.6"
+              stroke-dasharray="6 5"
+            />
+            <text
+              x="582"
+              y="463"
+              font-size="13.5"
+              font-weight="700"
+              fill="#6b7280"
+              text-anchor="middle"
+            >
+              ML TRUST CHECK · planned
+            </text>
+            <text
+              x="582"
+              y="482"
+              font-size="11.5"
+              fill="#6b7280"
+              text-anchor="middle"
+            >
+              embedding-distance — flags confident-wrong
+            </text>
+            <rect
+              x="800"
+              y="446"
+              width="176"
+              height="50"
+              rx="12"
+              fill="#dcfce7"
+              stroke="#16a34a"
+              stroke-width="1.5"
+            />
+            <text
+              x="888"
+              y="468"
+              font-size="12.5"
+              font-weight="600"
+              fill="#166534"
+              text-anchor="middle"
+            >
+              ✓ Structured,
+            </text>
+            <text
+              x="888"
+              y="485"
+              font-size="12.5"
+              font-weight="600"
+              fill="#166534"
+              text-anchor="middle"
+            >
+              checked result
+            </text>
+            <rect
+              x="424"
+              y="536"
+              width="316"
+              height="130"
+              rx="12"
+              fill="#eef2ff"
+              stroke="#6366f1"
+              stroke-width="2"
+            />
+            <text
+              x="582"
+              y="561"
+              font-size="15"
+              font-weight="700"
+              fill="#3730a3"
+              text-anchor="middle"
+            >
+              CURATION LOOP
+            </text>
+            <text x="440" y="584" font-size="11.5" fill="#4b5563">
+              ① queue — novel + low-trust cases
+            </text>
+            <text x="440" y="604" font-size="11.5" fill="#4b5563">
+              ② React/TS review UI — approve / reject
+            </text>
+            <text x="440" y="624" font-size="11.5" fill="#4b5563">
+              ③ approve → draft taxonomy entry generated
+            </text>
+            <text x="440" y="644" font-size="11.5" fill="#4b5563">
+              ④ human verifies vs source → moves into KB
+            </text>
+            <path
+              d="M582,132 L582,156"
+              stroke="#4b5563"
+              stroke-width="2"
+              fill="none"
+              marker-end="url(#a)"
+            />
+            <path
+              d="M772,150 C740,176 730,182 728,196"
+              stroke="#9ca3af"
+              stroke-width="1.5"
+              stroke-dasharray="5 4"
+              fill="none"
+              marker-end="url(#al)"
+            />
+            <path
+              d="M582,254 L582,290"
+              stroke="#4b5563"
+              stroke-width="2"
+              fill="none"
+              marker-end="url(#a)"
+            />
+            <path
+              d="M582,402 L582,438"
+              stroke="#4b5563"
+              stroke-width="2"
+              fill="none"
+              marker-end="url(#a)"
+            />
+            <path
+              d="M726,468 L798,468"
+              stroke="#4b5563"
+              stroke-width="2"
+              fill="none"
+              marker-end="url(#a)"
+            />
+            <path
+              d="M582,496 L582,534"
+              stroke="#4b5563"
+              stroke-width="2"
+              fill="none"
+              marker-end="url(#a)"
+            />
+            <path
+              d="M298,206 L436,206"
+              stroke="#2563eb"
+              stroke-width="1.8"
+              fill="none"
+              marker-end="url(#ab)"
+            />
+            <path
+              d="M298,347 L436,347"
+              stroke="#2563eb"
+              stroke-width="1.8"
+              fill="none"
+              marker-end="url(#ab)"
+            />
+            <path
+              d="M422,600 L300,600"
+              stroke="#2563eb"
+              stroke-width="1.8"
+              fill="none"
+              marker-end="url(#ab)"
+            />
+            <g font-size="11.5">
+              <rect x="352" y="190" width="58" height="16" fill="#fff" />
+              <text x="356" y="203" fill="#1d4ed8">grounds</text>
+              <rect x="350" y="331" width="64" height="16" fill="#fff" />
+              <text x="354" y="344" fill="#1d4ed8">validates</text>
+              <rect x="350" y="584" width="44" height="16" fill="#fff" />
+              <text x="354" y="597" fill="#1d4ed8">grows</text>
+              <rect x="732" y="450" width="62" height="16" fill="#fff" />
+              <text x="736" y="463" fill="#374151">trusted ✓</text>
+              <rect x="590" y="506" width="92" height="16" fill="#fff" />
+              <text x="594" y="519" fill="#374151">novel / low-trust</text>
+            </g>
+            <rect
+              x="800"
+              y="556"
+              width="15"
+              height="15"
+              rx="4"
+              fill="#eef2ff"
+              stroke="#6366f1"
+              stroke-width="2"
+            />
+            <text x="821" y="568" font-size="12" fill="#374151">
+              built &amp; running
+            </text>
+            <rect
+              x="800"
+              y="582"
+              width="15"
+              height="15"
+              rx="4"
+              fill="#f9fafb"
+              stroke="#9ca3af"
+              stroke-width="1.4"
+              stroke-dasharray="4 3"
+            />
+            <text x="821" y="594" font-size="12" fill="#374151">planned</text>
+          </svg>
+        </div>
+        <p class="cap">
+          ScamAnchor system architecture — built core (solid) and roadmap
+          (dashed).
+        </p>
+
+        <h3>The knowledge graph — structured, evidenced, not prose</h3>
+        <p>
+          So a machine can validate against it and a human can audit where it
+          came from. Here's the rental <em>category</em> I added after the
+          failure above — sourced to the authorities the field actually uses:
+        </p>
+        <div class="code">
+          <div class="bar">
+            <i class="r"></i><i class="y"></i><i class="g"></i
+            ><span>CAT-10 — scam category (YAML)</span>
+          </div>
+          <pre><code><span class="k">id</span>: CAT-10
+<span class="k">name</span>: Rental Scam
+<span class="k">description</span>: <span class="s">&gt;-
+  Victim is lured by a below-market rental listing and pressured to pay a
+  deposit before viewing — often because the "landlord" claims to be overseas,
+  or impersonates a real CEA-registered agent. Distinct from CAT-02
+  (E-commerce): the pretext is a property transaction, not a marketplace buy.</span>
+<span class="k">aligned_external_categories</span>:
+  - <span class="s">"SPF: Rental Scam"</span>
+  - <span class="s">"Fed ScamClassifier: Property Sale or Rental Scam"</span></code></pre>
+        </div>
+        <p>
+          …and a <em>pattern</em> under it — the facets are the controlled
+          vocabulary the classifier maps into and the validator checks against:
+        </p>
+        <div class="code">
+          <div class="bar">
+            <i class="r"></i><i class="y"></i><i class="g"></i
+            ><span>SP-014 — scam pattern (YAML)</span>
+          </div>
+          <pre><code><span class="k">id</span>: SP-014
+<span class="k">name</span>: Advance-Deposit Rental Scam
+<span class="k">belongs_to_category</span>: CAT-10
+<span class="k">channel</span>: [property_listing_site, social_media]
+<span class="k">psychological_trigger</span>: [greed, urgency]
+<span class="k">attack_method</span>: [baiting, impersonation]
+<span class="k">loss_type</span>: [financial]
+<span class="k">singapore_prevalence</span>: medium
+<span class="k">detection_source</span>:
+  - <span class="s">"SPF Police Advisory on Rental Scams (2 Feb 2024)"</span>
+  - <span class="s">"Fed ScamClassifier — Property Sale or Rental Scam"</span></code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONSOLE -->
+    <section id="console">
+      <div class="container">
+        <div class="section-label">Human in the loop</div>
+        <h2>The review console — built for an anti-scam analyst.</h2>
+        <p>
+          This is the part of the system closest to ScamShield's own work —
+          their public 2025 updates describe building a dashboard to triage and
+          <em>label</em> scam reports. So I designed the review surface for
+          exactly that user: an analyst working the queue.
+        </p>
+        <figure>
+          <img
+            src="review-console.png"
+            alt="ScamAnchor review console: an analyst's queue with a flagged novel scam report, its classifier read, and approve/reject actions."
+          />
+          <figcaption>
+            The ScamAnchor review console — an analyst triaging a flagged novel
+            case.
+          </figcaption>
+        </figure>
+        <p>
+          When the classifier flags a report as <em>novel</em>, it lands here
+          rather than being force-fit into a wrong category. The analyst sees
+          the report, the classifier's read, and the validation status, then
+          decides. On approval, the system generates a
+          <strong>draft</strong> taxonomy entry — which the analyst verifies
+          against a real source before it enters the knowledge base.
+          <strong
+            >Nothing is added automatically; a human is always the gate.</strong
+          >
+        </p>
+      </div>
+    </section>
+
+    <!-- ROADMAP -->
+    <section id="roadmap">
+      <div class="container">
+        <div class="section-label">Where it's going</div>
+        <h2>Two jobs — prevent the second victim, then the first.</h2>
+        <p>
+          <strong>Prevent the second victim</strong> — recognise a known attack
+          vector so no one else falls to it. <em>This is built.</em>
+          <strong>Prevent the first victim</strong> — catch a brand-new scam
+          before it claims anyone. <em>This is the vision:</em> surfacing scams
+          from the wild, and a red-team that invents plausible variants and
+          tests them against the live system before they appear at all.
+        </p>
+
+        <table class="road">
+          <thead>
+            <tr>
+              <th>When it fires</th>
+              <th>Defence</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Every classification</td>
+              <td>4-layer output validation</td>
+              <td><span class="pill run">● running</span></td>
+            </tr>
+            <tr>
+              <td>Continuously</td>
+              <td>Novelty → human curation → KB grows</td>
+              <td><span class="pill run">● running</span></td>
+            </tr>
+            <tr>
+              <td>Every classification</td>
+              <td>Embedding-distance ML trust check</td>
+              <td><span class="pill plan">○ planned (next)</span></td>
+            </tr>
+            <tr>
+              <td>Continuously</td>
+              <td>Real-world discovery (news / report monitor)</td>
+              <td><span class="pill plan">○ planned</span></td>
+            </tr>
+            <tr>
+              <td>Proactively</td>
+              <td>Adversarial anticipation (red-team)</td>
+              <td><span class="pill plan">○ planned</span></td>
+            </tr>
+            <tr>
+              <td>Periodically</td>
+              <td>External-taxonomy sync</td>
+              <td><span class="pill plan">○ maintenance</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="note">
+          The two running layers are the load-bearing core; the rest extend the
+          same spine. Underneath, a deliberate next prototype re-platforms the
+          proven design onto a production stack (TypeScript / NestJS,
+          PostgreSQL, AWS).
+        </p>
+      </div>
+    </section>
+
+    <!-- LIMITS -->
+    <section id="limits">
+      <div class="container">
+        <div class="section-label">Honesty</div>
+        <h2>What it doesn't do — and which kind that is.</h2>
+        <p>
+          A system is only as trustworthy as its author's honesty about its
+          limits. Two kinds, kept separate because they're different:
+        </p>
+        <div class="two">
+          <div class="panel">
+            <h3>Deliberate scope decisions</h3>
+            <ul>
+              <li>
+                <strong>Not deployed</strong> — a capability prototype, run
+                locally; deployment is the next build's job.
+              </li>
+              <li>
+                <strong>Python, not the OGP stack</strong> — chosen for fast
+                iteration; the TS/NestJS re-platform is the planned next
+                prototype.
+              </li>
+              <li>
+                <strong>No retrieval/RAG</strong> — premature at this size;
+                revisited when the KB grows or prompts get costly.
+              </li>
+              <li>
+                <strong>Review console is single-user, no auth</strong> — login,
+                accounts, RBAC, and audit are production concerns for the
+                officer-facing version.
+              </li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>Honest open gaps — each with a plan</h3>
+            <ul>
+              <li>
+                <strong>Confident-but-wrong has no runtime check.</strong>
+                Validation catches fabricated values/IDs, not a confident match
+                to a real-but-wrong category (the rental case). →
+                <em>Plan:</em> the embedding-distance ML trust check,
+                independent of the model's own confidence.
+              </li>
+              <li>
+                <strong
+                  ><code>is_scam</code> false negatives exit silently.</strong
+                >
+                A wrong "not a scam" leaves no trace. → <em>Plan:</em> an
+                <code>is_scam</code> confidence signal feeding a review route.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <h3>Let's talk</h3>
+      <p>
+        I'm aiming to build anti-scam systems in Singapore's public sector. If
+        this is relevant to your team — or you'd just like to talk through the
+        approach — I'd be glad to hear from you.
+      </p>
+      <div class="foot-links">
+        <a
+          href="mailto:tommy.asni08@gmail.com?subject=ScamAnchor"
+          style="
+            display: inline-block;
+            background: #2563eb;
+            color: #fff;
+            padding: 0.75rem 1.7rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+          "
+          >Email me to discuss →</a
+        >
+      </div>
+      <p
+        style="
+          margin-top: 1.5rem;
+          font-size: 0.82rem;
+          color: rgba(255, 255, 255, 0.5);
+        "
+      >
+        A solo, end-to-end anti-scam intelligence prototype — domain depth,
+        grounded-AI engineering, shipping.
+      </p>
+    </footer>
+  </body>
+</html>
